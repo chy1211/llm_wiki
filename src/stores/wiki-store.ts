@@ -33,6 +33,11 @@ interface LlmConfig {
   azureApiVersion?: string
   azureModelFamily?: AzureModelFamily
   maxContextSize: number // max context window in characters
+  /**
+   * Explicit cap on tokens the model may write per ingest call (analysis and
+   * page generation). Unset/0 keeps the values derived from maxContextSize.
+   */
+  maxOutputTokens?: number
   apiMode?: CustomApiMode
   reasoning?: ReasoningConfig
   /**
@@ -341,6 +346,8 @@ export interface ProviderOverride {
   azureModelFamily?: AzureModelFamily
   apiMode?: CustomApiMode
   maxContextSize?: number
+  /** Explicit ingest output cap in tokens; unset/0 = derive from maxContextSize. */
+  maxOutputTokens?: number
   reasoning?: ReasoningConfig
   /** Reasoning used by structured ingest calls; defaults to off. */
   ingestReasoning?: ReasoningConfig

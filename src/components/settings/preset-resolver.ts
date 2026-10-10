@@ -34,6 +34,11 @@ export function resolveConfig(
   const model = ov.model ?? preset.defaultModel ?? ""
   const maxContextSize =
     ov.maxContextSize ?? preset.suggestedContextSize ?? fallback.maxContextSize
+  // Explicit ingest output cap (tokens). Unset/non-positive = derive from maxContextSize.
+  const maxOutputTokens =
+    typeof ov.maxOutputTokens === "number" && Number.isFinite(ov.maxOutputTokens) && ov.maxOutputTokens > 0
+      ? Math.floor(Math.min(ov.maxOutputTokens, 200000))
+      : undefined
   const reasoning = ov.reasoning ?? { mode: "auto" as const }
   // Carried alongside `reasoning`: without it the ingest selector would save a
   // value the resolved config drops, and ingest would keep using the default.
@@ -67,6 +72,7 @@ export function resolveConfig(
       ingestReasoning,
       localCliIsolation: false,
       requestTimeoutMinutes,
+      maxOutputTokens,
       customHeaders,
       ...streamingConfig,
     }
@@ -84,6 +90,7 @@ export function resolveConfig(
       ingestReasoning,
       localCliIsolation: false,
       requestTimeoutMinutes,
+      maxOutputTokens,
       customHeaders,
       ...streamingConfig,
     }
@@ -103,6 +110,7 @@ export function resolveConfig(
       ingestReasoning,
       localCliIsolation: false,
       requestTimeoutMinutes,
+      maxOutputTokens,
       customHeaders,
       ...streamingConfig,
     }
@@ -123,6 +131,7 @@ export function resolveConfig(
       localCliIsolation,
       codexCliTimeoutMinutes: preset.provider === "codex-cli" ? codexCliTimeoutMinutes : undefined,
       requestTimeoutMinutes,
+      maxOutputTokens,
       ...streamingConfig,
     }
   }
@@ -141,6 +150,7 @@ export function resolveConfig(
     ingestReasoning,
     localCliIsolation: false,
     requestTimeoutMinutes,
+      maxOutputTokens,
     customHeaders,
     ...streamingConfig,
   }

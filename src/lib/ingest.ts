@@ -89,7 +89,7 @@ function ingestAnalysisRequest(config: LlmConfig): {
   maxTokens: number
   reasoning: ReasoningConfig
 } {
-  const contentTokens = computeIngestAnalysisMaxTokens(config.maxContextSize)
+  const contentTokens = computeIngestAnalysisMaxTokens(config.maxContextSize, config.maxOutputTokens)
   const requested = resolveIngestReasoning(config)
   const reasoning = requested.mode === "custom"
     ? {
@@ -1187,7 +1187,7 @@ async function autoIngestImpl(
       {
         temperature: 0.1,
         reasoning: resolveIngestReasoning(llmConfig),
-        max_tokens: computeIngestGenerationMaxTokens(llmConfig.maxContextSize),
+        max_tokens: computeIngestGenerationMaxTokens(llmConfig.maxContextSize, llmConfig.maxOutputTokens),
       },
     )
   } catch (err) {
@@ -1252,7 +1252,7 @@ async function autoIngestImpl(
         {
           temperature: 0.1,
           reasoning: resolveIngestReasoning(llmConfig),
-          max_tokens: computeIngestReviewMaxTokens(llmConfig.maxContextSize),
+          max_tokens: computeIngestReviewMaxTokens(llmConfig.maxContextSize, llmConfig.maxOutputTokens),
         },
       )
     } catch (err) {
@@ -1335,7 +1335,7 @@ async function autoIngestImpl(
           // A repair must regenerate the complete FILE body. Reusing the
           // smaller review budget can immediately truncate the same long page
           // that exhausted the original response.
-          max_tokens: computeIngestGenerationMaxTokens(llmConfig.maxContextSize),
+          max_tokens: computeIngestGenerationMaxTokens(llmConfig.maxContextSize, llmConfig.maxOutputTokens),
         },
       )
       throwIfIngestAborted(signal, activityId)
@@ -2745,7 +2745,21 @@ export function computeIngestSourceBudget(
   return clampNumber(Math.floor(available), LONG_SOURCE_MIN_BUDGET, upper)
 }
 
-export function computeIngestGenerationMaxTokens(maxContextSize: number | undefined): number {
+// Local patch: an explicit per-provider "max output tokens" setting wins over the
+// values derived from maxContextSize (those are clamped to 4096..8192 for analysis
+// and 8192..32768 for generation, which truncates long sources on big-window models).
+function explicitMaxOutputTokens(maxOutputTokens: number | undefined): number | undefined {
+  return typeof maxOutputTokens === "number" && Number.isFinite(maxOutputTokens) && maxOutputTokens > 0
+    ? Math.floor(maxOutputTokens)
+    : undefined
+}
+
+export function computeIngestGenerationMaxTokens(
+  maxContextSize: number | undefined,
+  maxOutputTokens?: number,
+): number {
+  const explicit = explicitMaxOutputTokens(maxOutputTokens)
+  if (explicit !== undefined) return explicit
   const { maxCtx } = computeContextBudget(maxContextSize)
   if (maxCtx >= 512_000) return INGEST_GENERATION_TOKENS_512K
   if (maxCtx >= 256_000) return INGEST_GENERATION_TOKENS_256K
@@ -2753,7 +2767,12 @@ export function computeIngestGenerationMaxTokens(maxContextSize: number | undefi
   return INGEST_GENERATION_TOKENS_DEFAULT
 }
 
-export function computeIngestAnalysisMaxTokens(maxContextSize: number | undefined): number {
+export function computeIngestAnalysisMaxTokens(
+  maxContextSize: number | undefined,
+  maxOutputTokens?: number,
+): number {
+  const explicit = explicitMaxOutputTokens(maxOutputTokens)
+  if (explicit !== undefined) return explicit
   const { responseReserve } = computeContextBudget(maxContextSize)
   const reservedOutputTokens = Math.floor(
     responseReserve / CONSERVATIVE_CHARS_PER_OUTPUT_TOKEN,
@@ -2765,8 +2784,11 @@ export function computeIngestAnalysisMaxTokens(maxContextSize: number | undefine
   )
 }
 
-export function computeIngestReviewMaxTokens(maxContextSize: number | undefined): number {
-  return Math.min(8_192, Math.max(4_096, Math.floor(computeIngestGenerationMaxTokens(maxContextSize) / 2)))
+export function computeIngestReviewMaxTokens(
+  maxContextSize: number | undefined,
+  maxOutputTokens?: number,
+): number {
+  return Math.min(8_192, Math.max(4_096, Math.floor(computeIngestGenerationMaxTokens(maxContextSize, maxOutputTokens) / 2)))
 }
 
 function splitOversizedBlock(block: string, targetChars: number): string[] {

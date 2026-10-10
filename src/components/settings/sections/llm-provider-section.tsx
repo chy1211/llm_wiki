@@ -692,6 +692,23 @@ function PresetRow({
             />
           </div>
 
+          <div className="space-y-2">
+            <Label>{t("settings.sections.llm.maxOutputTokens", "Max output tokens per ingest call")}</Label>
+            <Input
+              type="number"
+              min={0}
+              max={200000}
+              step={1024}
+              value={ov.maxOutputTokens ?? 0}
+              onChange={(e) => onChange({
+                maxOutputTokens: Math.max(0, Math.min(200000, Math.floor(Number(e.target.value) || 0))),
+              })}
+            />
+            <p className="text-xs text-muted-foreground">
+              {t("settings.sections.llm.maxOutputTokensHint", "0 = automatic (derived from the context window, 4096-8192 for analysis). Raise this if long sources fail with \"truncated after reaching the output limit\". Input + output must still fit the model's window.")}
+            </p>
+          </div>
+
           <div className="space-y-2 rounded-md border p-3">
             <div className="flex items-start justify-between gap-3">
               <div>
