@@ -29,7 +29,10 @@ const QUEUE_EMIT_EVERY: usize = 25;
 // share reconnects, or long Windows sessions without terminating the watcher.
 // A low-frequency snapshot reconciliation makes the watcher self-healing on
 // every supported platform while keeping steady-state filesystem load small.
-const LINUX_WATCHER_RESCAN_INTERVAL_MS: i64 = 10_000;
+// Local patch: was 10_000. On a 2-core ARM VPS with ~5k files a 10s full
+// reconcile kept one core pinned (see upstream issues #810/#812). inotify
+// already delivers live events; this is only the self-healing safety net.
+const LINUX_WATCHER_RESCAN_INTERVAL_MS: i64 = 600_000;
 const OTHER_WATCHER_RESCAN_INTERVAL_MS: i64 = 60_000;
 const DEFAULT_SOURCE_WATCH_CONFIG_JSON: &str =
     include_str!("../../../src/lib/source-watch-defaults.json");
