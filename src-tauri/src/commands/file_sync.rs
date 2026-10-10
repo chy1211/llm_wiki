@@ -9,6 +9,7 @@ use std::sync::{Arc, Mutex, OnceLock};
 use std::time::Duration;
 
 use md5::{Digest, Md5};
+use notify::event::{AccessKind, AccessMode, EventKind};
 use notify::{Config, Event, RecommendedWatcher, RecursiveMode, Watcher};
 use serde::{Deserialize, Serialize};
 use tauri::{AppHandle, Emitter, State};
@@ -276,6 +277,16 @@ pub fn start_project_file_watcher(
         let mut watcher = RecommendedWatcher::new(
             move |res: notify::Result<Event>| match res {
                 Ok(event) => {
+                    // Local patch: notify 8 on Linux also reports OPEN / CLOSE_NOWRITE /
+                    // ACCESS. Handling a change re-reads files (md5), which emits more
+                    // read events, which trigger another pass: a self-sustaining loop that
+                    // pinned a core with nothing on disk changing. Only a finished write
+                    // (CLOSE_WRITE) is a content change worth reacting to.
+                    if let EventKind::Access(kind) = &event.kind {
+                        if !matches!(kind, AccessKind::Close(AccessMode::Write)) {
+                            return;
+                        }
+                    }
                     for path in event.paths {
                         if tx_for_watcher.try_send(path).is_err() {
                             let _ = tx_for_watcher.try_send(root_for_overflow.clone());
