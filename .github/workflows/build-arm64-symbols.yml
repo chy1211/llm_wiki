@@ -1,0 +1,53 @@
+name: Build arm64 binary with symbols (profiling)
+
+# Fork-only: same steps as build-arm64-deb.yml, but keeps function names and
+# line tables in the release binary so `perf report` can name the hot function.
+on:
+  push:
+    branches: [vps-symbols]
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-22.04-arm
+    env:
+      CARGO_HTTP_MULTIPLEXING: "false"
+      CARGO_NET_RETRY: "5"
+      CARGO_HTTP_TIMEOUT: "60"
+      CARGO_PROFILE_RELEASE_STRIP: "false"
+      CARGO_PROFILE_RELEASE_DEBUG: "line-tables-only"
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: src-tauri
+          key: symbols
+      - name: Install dependencies (Ubuntu)
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libwebkit2gtk-4.1-dev libappindicator3-dev librsvg2-dev patchelf protobuf-compiler xdg-utils
+      - name: Verify PDFium binary checksums
+        run: shasum -a 256 -c src-tauri/pdfium/SHA256SUMS
+      - name: Use ARM64 pdfium binary
+        run: cp src-tauri/pdfium/libpdfium-arm64.so src-tauri/pdfium/libpdfium.so
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - run: npm install
+      - name: Prepare MCP server resources
+        run: |
+          npm --prefix mcp-server ci
+          npm run mcp:build
+      - name: Build binary (no bundle)
+        run: npm run tauri -- build --no-bundle
+      - name: Check symbols present
+        run: |
+          file src-tauri/target/release/llm-wiki
+          nm -C src-tauri/target/release/llm-wiki | grep -c file_sync || true
+      - uses: actions/upload-artifact@v4
+        with:
+          name: llm-wiki-arm64-symbols
+          path: src-tauri/target/release/llm-wiki
+          if-no-files-found: error
+          retention-days: 7
