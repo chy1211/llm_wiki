@@ -40,7 +40,23 @@ jobs:
           npm --prefix mcp-server ci
           npm run mcp:build
       - name: Build binary (no bundle)
-        run: npm run tauri -- build --no-bundle
+        env:
+          # Lighter than the release profile (fat LTO, 1 codegen unit): the first
+          # attempt died after ~21 min, most likely out of memory with debug info.
+          CARGO_PROFILE_RELEASE_LTO: "thin"
+          CARGO_PROFILE_RELEASE_CODEGEN_UNITS: "16"
+        run: |
+          free -m
+          set -o pipefail
+          npm run tauri -- build --no-bundle 2>&1 | tee build.log
+      - name: Keep build log
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: build-log
+          path: build.log
+          if-no-files-found: ignore
+          retention-days: 3
       - name: Check symbols present
         run: |
           file src-tauri/target/release/llm-wiki
