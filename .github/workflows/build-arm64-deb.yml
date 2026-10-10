@@ -1,0 +1,48 @@
+name: Build arm64 deb (fork)
+
+# Fork-only workflow: builds just the Ubuntu arm64 .deb from this branch.
+# Steps mirror upstream build.yml (ubuntu-22.04-arm row) minus signing/release.
+on:
+  push:
+    branches: [vps-fixes]
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-22.04-arm
+    env:
+      CARGO_HTTP_MULTIPLEXING: "false"
+      CARGO_NET_RETRY: "5"
+      CARGO_HTTP_TIMEOUT: "60"
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: src-tauri
+      - name: Install dependencies (Ubuntu)
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libwebkit2gtk-4.1-dev libappindicator3-dev librsvg2-dev patchelf protobuf-compiler xdg-utils
+      - name: Verify PDFium binary checksums
+        run: shasum -a 256 -c src-tauri/pdfium/SHA256SUMS
+      - name: Use ARM64 pdfium binary
+        run: |
+          cp src-tauri/pdfium/libpdfium-arm64.so src-tauri/pdfium/libpdfium.so
+          file src-tauri/pdfium/libpdfium.so
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - run: npm install
+      - name: Prepare MCP server resources
+        run: |
+          npm --prefix mcp-server ci
+          npm run mcp:build
+      - name: Build deb
+        run: npm run tauri -- build --bundles deb
+      - uses: actions/upload-artifact@v4
+        with:
+          name: llm-wiki-arm64-deb
+          path: src-tauri/target/release/bundle/deb/*.deb
+          if-no-files-found: error
+          retention-days: 14
