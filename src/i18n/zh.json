@@ -556,6 +556,8 @@
         "apiMode": "API 模式",
         "endpoint": "Endpoint",
         "contextWindow": "上下文窗口",
+        "maxOutputTokens": "每次导入调用的最大输出 token",
+        "maxOutputTokensHint": "0 = 自动（根据上下文窗口推算）。如果长资料出现“达到输出上限后被截断”的错误，请调高此值。输入加输出仍须在模型的上下文窗口内。",
         "wireOpenAi": "OpenAI 兼容",
         "wireAnthropic": "Anthropic 兼容",
         "apiKeyPlaceholderCustom": "无 Key 可留空（本地模型）",

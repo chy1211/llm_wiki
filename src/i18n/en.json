@@ -556,6 +556,8 @@
         "apiMode": "API Mode",
         "endpoint": "Endpoint",
         "contextWindow": "Context window",
+        "maxOutputTokens": "Max output tokens per ingest call",
+        "maxOutputTokensHint": "0 = automatic (derived from the context window). Raise this if long sources fail with \"truncated after reaching the output limit\". Input + output must still fit the model's window.",
         "wireOpenAi": "OpenAI-compat",
         "wireAnthropic": "Anthropic-compat",
         "apiKeyPlaceholderCustom": "Leave empty if no key (local models)",

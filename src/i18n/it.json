@@ -556,6 +556,8 @@
         "apiMode": "Modalità API",
         "endpoint": "Endpoint",
         "contextWindow": "Finestra di contesto",
+        "maxOutputTokens": "Token di output massimi per chiamata di importazione",
+        "maxOutputTokensHint": "0 = automatico (derivato dalla finestra di contesto). Aumentalo se le fonti lunghe falliscono con \"troncato dopo aver raggiunto il limite di output\". Input + output devono comunque rientrare nella finestra del modello.",
         "wireOpenAi": "Compatibile OpenAI",
         "wireAnthropic": "Compatibile Anthropic",
         "apiKeyPlaceholderCustom": "Lascia vuoto se non serve una chiave (modelli locali)",
