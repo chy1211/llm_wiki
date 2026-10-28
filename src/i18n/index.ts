@@ -3,6 +3,7 @@ import { initReactI18next } from "react-i18next"
 import en from "./en.json"
 import it from "./it.json"
 import zh from "./zh.json"
+import zhTW from "./zh-TW.json"
 import ru from "./ru.json"
 
 i18n.use(initReactI18next).init({
@@ -10,6 +11,7 @@ i18n.use(initReactI18next).init({
     en: { translation: en },
     it: { translation: it },
     zh: { translation: zh },
+    "zh-TW": { translation: zhTW },
     ru: { translation: ru },
   },
   lng: "en",
